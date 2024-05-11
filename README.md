@@ -8,12 +8,16 @@ CBIR aims to make finding images easier by focusing on their visual content, not
 
 
 METHODOLOGY, FUNCTION USED FOR STORAGE 
+
 Image Collection (Task 1): 
 I started by specifying the folder path where images are stored and uses a wildcard pattern to gather file information about JPEG images in the directory. A loop is then initiated to process each image individually. Images are collected from a specified folder using the dir. function and stored in a structure array. 
+
 Image Preprocessing (Task 2): 
 In this part, for each image, a part of code for preprocessing steps are applied inside a loop. These include resizing the image to a uniform size of 500x500 pixels, converting it to grayscale, and denoising using Gaussian filtering. The pre-processed images are saved in a separate folder at each step.  
+
 Feature Extraction (Task 4): 
 In this part, I calculated statistical features (mean, standard deviation, skewness) for each color channel (red, green, blue) of the resized image. These features are stored in a table, and the information is encoded into a JSON file. Additionally, Gabor filtering is applied to the grayscale image, and the magnitude and phase of the Gabor response are visualized in a subplot layout for clear visualisation. 
+
 Image Annotation (Task 3): 
 In this part a metadata is created named Image metadata, including filenames, keywords, and 
 descriptions,  which information are all manually assigned outside the loop for all 28 images. This 
