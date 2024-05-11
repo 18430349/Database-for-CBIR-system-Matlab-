@@ -1,0 +1,264 @@
+%5DATA005W DATA ENGINEERING COURSEWORK 2
+%STUDENT ID:W1840439
+
+
+%TASK 1- IMAGE COLLECTION
+%TASK 2-IMAGE PREPROCCESING
+%TASK 4- FEATURE EXTRACTION
+%THEY ARE ALL INSIDE THE LOOP to repeat for every images in the file
+
+%TASK 3- IMAGE ANOTATIONS
+%done manually for all 28images outside the loop at the end of the code and
+%then json file created to store information
+
+folder = 'C:\Users\dhars\OneDrive\Desktop\ImagesData';% this code leads to the path where my images are saved
+filePattern = fullfile(folder, '*.jpg');%this line set the type of file of my images
+images = dir(filePattern);% setting variable to obtain information from directory which hold structure array 
+
+% Creating the output folder to store the preproccesed images and images after feature engineering ; if it doesn't exist
+preprocessed = 'C:\Users\dhars\OneDrive\Desktop\ImagesData\preprocessed'; %setting a path where to store the filtered and preprocessed images
+if ~exist(preprocessed, 'dir')% an if else condition to check if the file name preprocessed already exist
+    mkdir(preprocessed);%creates the file in the directory if not exist
+end
+
+fileType = fullfile(preprocessed, '*.jpg');% set the type of files of filtered and preproccesed images like jpg
+processedImages = dir(fileType);% setting a variable that retrive the images from the directory of fileType variable
+
+for k = 1:length(images)% initiating a loop to run for each image in the file
+    baseFileName = images(k).name;%to retrieve the image to be preproccesed 
+    fullFileName = fullfile(folder, baseFileName);%function to create full file path combining with current image
+    imageArray = imread(fullFileName);%setting a variable to pixel values of current image ; imread function to read image file
+
+    % Preprocessing steps
+    processedImage = imageArray;%setting a variale to copy the original images for the proccess 
+    resizedImage = imresize(processedImage, [500, 500]);%resising image size to the specified pixel dimension
+    imageGray = rgb2gray(resizedImage); % Convert the resized image to grayscale
+    denoisedImage = imgaussfilt(imageGray, 2);% Gaussian filtering for denoising
+
+    % Saving the image after all preprocessed done to the output folder
+    imwrite(denoisedImage, fullfile(preprocessed, ['processed_', baseFileName]));
+
+    % creating a 2 by 2 subplot layout to display four images of each step
+    % of preprocess on a single figure but seperate subplots
+    figure;
+    subplot(2,2,1); imshow(processedImage); title('Original Image');
+    subplot(2,2,2); imshow(resizedImage); title('Resized Image');
+    subplot(2,2,3); imshow(imageGray); title('Grayscale Image');
+    subplot(2,2,4); imshow(denoisedImage); title('Denoised Image');
+
+     % TASK 4: IMAGE FEATURE EXTRACTION
+     %code below are sourced from tutorial notes to calculate mean,
+     %standard deviation and skewness for each color channel(red, green and
+     %blue) of the resized image
+    meanRed = mean2(resizedImage(:,:,1));
+    stdDevRed = std2(resizedImage(:,:,1));
+    skewnessRed = skewness(im2double(resizedImage(:,:,1)), 1, 'all');
+
+    meanGreen = mean2(resizedImage(:,:,2));
+    stdDevGreen = std2(resizedImage(:,:,2));
+    skewnessGreen = skewness(im2double(resizedImage(:,:,2)), 1, 'all');
+
+    meanBlue = mean2(resizedImage(:,:,3));
+    stdDevBlue = std2(resizedImage(:,:,3));
+    skewnessBlue = skewness(im2double(resizedImage(:,:,3)), 1, 'all');
+
+    %this part of code is to contruct a table to store all the calculations
+    %for each colo channel with aappropriate variable names
+    momentsTable = table(meanRed, stdDevRed, skewnessRed, ...
+        meanGreen, stdDevGreen, skewnessGreen, ...
+        meanBlue, stdDevBlue, skewnessBlue, ...
+        'VariableNames', {'Mean_Red', 'StdDev_Red','Skewness_Red', ...
+        'Mean_Green', 'StdDev_Green', 'Skewness_Green', ...
+        'Mean_Blue', 'StdDev_Blue','Skewness_Blue'});
+
+    %this part of code defines a filename for the JSON file and encode the
+    %table created into  a JSON format using jsonencode.
+    jsonFileName = fullfile(preprocessed, ['features_', baseFileName, '.json']);
+    jsonStr = jsonencode(table2struct(momentsTable));
+    fid = fopen(jsonFileName, 'w');% opening the file for writing
+    fprintf(fid, '%s', jsonStr);%write information
+    fclose(fid);%close the file
+
+    % Display a message for each image on the command window after creating
+    % JSON file with informations
+    disp(['JSON file saved for IMAGE ', baseFileName]);
+
+
+    % Gabor Filter to a gray scale image and visualise the original
+    % grayscale image, the magnitude and the phase of the Gabor filter reponse
+    wavelength = 4;%specify the wavelength
+    orientation = 45;%specify the orientation
+    [mag, phase] = imgaborfilt(imageGray, wavelength, orientation);%function for magnitude and phase
+
+    %this part creates a new figure for displaying the result for every
+    %image ina seperate subplot 1 by 3 grid
+    figure;
+    subplot(1,3,1); imshow(imageGray); title('Grayscale Image');
+    subplot(1,3,2); imshow(mag, [0, 555]); title('Gabor Magnitude');
+    subplot(1,3,3); imshow(phase); title('Gabor Phase');
+
+    % Connected Components extract information of analysis on binary images
+    % and convert them into a table, then write it to a csv file.
+    binary_image = imbinarize(imageGray);%convert grayscale image to binary
+
+    CC = bwconncomp(binary_image);%variable to store the binary image; function used to identify the connected components in the binary image
+    propertiesCC = regionprops(CC);%variable set to computes property of cc 
+    propertiesCCTable = struct2table(propertiesCC);% convert to table
+    writetable(propertiesCCTable, 'connected_components_properties.csv');%write table to a csv file
+end
+
+
+%TASK 3 IMAGE ANOTATION%
+% Create a cell array to store image metadata and save it to a MAT file for
+% later use
+%assigning all the file name, keywords and description manually
+imageMetadata = cell(28, 3);
+
+% Image 1
+imageMetadata{1, 1} = 'img(1).jpg';
+imageMetadata{1, 2} = {'Water', 'Sea', 'Boat'};
+imageMetadata{1, 3} = 'Black boat on sea under blue sky during daytime';
+
+% Image 2
+imageMetadata{2, 1} = 'img(2).jpg';
+imageMetadata{2, 2} = {'Old', 'Building', 'Tall'};
+imageMetadata{2, 3} = 'Two old tall buildings on a cloudy day';
+
+% Image 3
+imageMetadata{3, 1} = 'img(3).jpg';
+imageMetadata{3, 2} = {'waves','colours','dark'};
+imageMetadata{3, 3} = 'A mixed colours of waves';
+
+% Image 4
+imageMetadata{4, 1} = 'img(4).jpg';
+imageMetadata{4, 2} = {'green','plant','field'};
+imageMetadata{4, 3} = 'A wet green plant in close up';
+
+% Image 5
+imageMetadata{5, 1} ='img(5).jpg';
+imageMetadata{5, 2} ={'leaf','single','autumn'};
+imageMetadata{5, 3} ='A close up view of leaf structure';
+
+% Image 6
+imageMetadata{6, 1} ='img(6).jpg';
+imageMetadata{6, 2} = {'petals','flowers','pink'};
+imageMetadata{6, 3} = 'Pink and white 5 petaled flower';
+
+% Image 7
+imageMetadata{7, 1} = 'img(7).jpg';
+imageMetadata{7, 2} = {'rocks','ocean','cliff'};
+imageMetadata{7, 3} = 'A view of the ocean from a rocky cliff';
+
+% Image 8
+imageMetadata{8, 1} = 'img(8).jpg';
+imageMetadata{8, 2} = {'mountain','snow','lake'};
+imageMetadata{8, 3} = 'Snow covered mountain near lake under blue sky';
+
+% Image 9
+imageMetadata{9, 1} = 'img(9).jpg';
+imageMetadata{9, 2} = {'books','chairs','people'};
+imageMetadata{9, 3} = 'A row of books in a room with people';
+
+% Image 10
+imageMetadata{10, 1} = 'img(10).jpg';
+imageMetadata{10, 2} = {'day','rock','person'};
+imageMetadata{10, 3} = 'A lady posing in the middle of a lake';
+
+% Image 11
+imageMetadata{11, 1} ='img(11).jpg';
+imageMetadata{11, 2} ={'sea','sun','shore'};
+imageMetadata{11, 3} ='A person sitting on a rock near sea during daytime';
+
+% Image 12
+imageMetadata{12, 1} = 'img(12).jpg';
+imageMetadata{12, 2} = {'grass','green','rain'};
+imageMetadata{12, 3} = 'Water droplets on green grass';
+
+% Image 13
+imageMetadata{13, 1} = 'img(13).jpg';
+imageMetadata{13, 2} = {'nature','field','green'};
+imageMetadata{13, 3} = 'Satellite capture';
+
+% Image 14
+imageMetadata{14, 1} = 'img(14).jpg';
+imageMetadata{14, 2} = {'sunset','ocean','tree'};
+imageMetadata{14, 3} = 'Sunset view near to sea';
+
+% Image 15 
+imageMetadata{15, 1} = 'img(15).jpg';
+imageMetadata{15, 2} = {'building','house','sky'};
+imageMetadata{15, 3} ='A capture of apartments';
+
+% Image 16
+imageMetadata{16, 1} = 'img(16).jpg';
+imageMetadata{16, 2} = {'fire','light','spark'};
+imageMetadata{16, 3} = 'A close view of sparkle from fires';
+
+% Image 17
+imageMetadata{17, 1} = 'img(17).jpg';
+imageMetadata{17, 2} = {'camera','strap','black'};
+imageMetadata{17, 3} = 'An out of focus image of a camera';
+
+% Image 18
+imageMetadata{18, 1} = 'img(18).jpg';
+imageMetadata{18, 2} = {'rubik','cube','block'};
+imageMetadata{18, 3} = 'A colourful rubik cube in a white background'; 
+
+% Image 19
+imageMetadata{19, 1} = 'img(19).jpg';
+imageMetadata{19, 2} = {'alley','building','narrow'};
+imageMetadata{19, 3} = 'A narrow alley between two tall buildings';
+
+% Image 20
+imageMetadata{20, 1} = 'img(20).jpg';
+imageMetadata{20, 2} = {'city','foggy','yacht'};
+imageMetadata{20, 3} = 'A foggy day in the city';
+
+% Image 21
+imageMetadata{21, 1} = 'img(21).jpg';
+imageMetadata{21, 2} = {'face','eyes','grey'};
+imageMetadata{21, 3} = 'A close image of a girls face';
+
+% Image 22
+imageMetadata{22, 1} = 'img(22).jpg';
+imageMetadata{22, 2} = {'vehicle','tyre','black'};
+imageMetadata{22, 3} = 'A vehicle parked next to a pole';
+
+% Image 23
+imageMetadata{23, 1} = 'img(23).jpg';
+imageMetadata{23, 2} = {'sidewalk','foggy','cold'};
+imageMetadata{23, 3} = 'A person sitting on a sidewalk';
+
+% Image 24
+imageMetadata{24, 1} = 'img(24).jpg';
+imageMetadata{24, 2} = {'building','mosque','green'};
+imageMetadata{24, 3} = 'An image of  mosque'; 
+
+% Image 25 
+imageMetadata{25, 1} ='img(25).jpg'; 
+imageMetadata{25, 2} = {'cat','whiskers','cute'};
+imageMetadata{25, 3} = 'A cute focus of a cat image';
+
+% Image 26
+imageMetadata{26, 1} = 'img(26).jpg';
+imageMetadata{26, 2} = {'board','chinese','light'};
+imageMetadata{26, 3} = 'Lighted text neon signage at night';
+
+% Image 27
+imageMetadata{27, 1} = 'img(27).jpg';
+imageMetadata{27, 2} = {'culture','bricks','brown'};
+imageMetadata{27, 3} = 'An image of a circle stone built';
+
+% Image 28
+imageMetadata{28, 1} = 'img(28).jpg';
+imageMetadata{28, 2} = {'wall','bricks','sky'};
+imageMetadata{28, 3} = 'Brown brick wall under blue sky';
+
+% Converting the cell array to a table with variable names
+metadataTable = cell2table(imageMetadata, 'VariableNames', {'ID', 'Keywords', 'Description'});
+
+% Save the cell array metadata to a MAT file named image_metadata
+save('image_metadata.mat', 'imageMetadata');
+
+
+%%END OF CODE 
